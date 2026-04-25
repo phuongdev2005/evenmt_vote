@@ -1,0 +1,257 @@
+    <form class="mt-[1em]" 
+        hx-post="https://www.elle.vn/wp/wp-admin/admin-ajax.php?action=ajaxHandler&method=user_signup"
+        hx-trigger="submit"
+        hx-swap="outerHTML"
+        hx-indicator="#ind_form"
+        data-loading-path="https://www.elle.vn/wp/wp-admin/admin-ajax.php?action=ajaxHandler&method=user_signup"
+    >
+        <div class="relative" x-data="{ showpwd: false, password: '' }">
+            <div
+                id="ind_form"
+                class="custom-indicator htmx-indicator h-full w-full inset-0 absolute bg-white/80 z-40"
+            >
+                <svg
+                class="animate-spin h-8 w-8 fill-milanoRed mx-auto"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                xmlns="http://www.w3.org/2000/svg"
+                >
+                <path
+                    d="M12 3C16.9706 3 21 7.02944 21 12H19C19 8.13401 15.866 5 12 5V3Z"
+                />
+                </svg>
+            </div>
+
+                        <div class="row field-group-address identification-card bg-[#E7E6E6] p-[1em]">
+    <div class="" style="padding: 0">
+        <span class="form-label">Căn cước công dân:</span>
+    </div>
+    <div class="">
+        <label class="full-field">
+        <input
+            type="text"
+            name="username"
+            id="username"
+            placeholder="Họ tên"
+            autocomplete="off"
+            class="w-full p-[0.5em] border border-solid border-black mt-[1em] text-[1.2em]"
+            required
+        />
+        </label>
+    </div>
+    <div class="col-md-6">
+        <label class="full-field">
+        <input
+            type="number"
+            name="identificationID"
+            id="identificationID"
+            placeholder="Số định danh"
+            autocomplete="off"
+            class="w-full p-[0.5em] border border-solid border-black mt-[1em] text-[1.2em]"
+            required
+        />
+        </label>
+    </div>
+    <div class="mt-[1em]">
+        <label class="full-field">
+        <span class="form-label" style="width: 40%">Ngày cấp</span>
+        <input
+            type="date"
+            name="identificationDate"
+            id="identificationDate"
+            placeholder="Ngày cấp"
+            class="w-full p-[0.5em] border border-solid border-black"
+            required
+        />
+        </label>
+    </div>
+</div>            <div hx-target="this" hx-swap="outerHTML">
+    <div class="relative mt-[1em]">
+        <input
+            type="email"
+            name="email"
+            id="email"
+            placeholder="Địa chỉ email"
+            class="w-full p-[0.5em] border border-solid text-[1.2em] border-black"
+            hx-post="https://www.elle.vn/wp/wp-admin/admin-ajax.php?action=ajaxHandler&method=check_email_signup"
+            hx-indicator="#ind_email"
+            autocomplete="email"
+            value="michaelmeyer864555@kt-family.my.id"
+            required
+        />
+        <div
+            id="ind_email"
+            class="htmx-indicator h-full inset-y-0 right-0 flex flex-col justify-center absolute"
+        >
+            <svg
+            class="animate-spin h-8 w-8 fill-milanoRed"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+            >
+            <path
+                d="M12 3C16.9706 3 21 7.02944 21 12H19C19 8.13401 15.866 5 12 5V3Z"
+            />
+            </svg>
+        </div>
+                
+    </div>
+    </div>            
+<div hx-target="this" hx-swap="outerHTML">
+    <div class="relative mt-[1em]">
+        <input
+            type="text"
+            class="w-full p-[0.5em] border border-solid text-[1.2em] border-black"
+            placeholder="Số điện thoại"
+            hx-post="https://www.elle.vn/wp/wp-admin/admin-ajax.php?action=ajaxHandler&method=check_phone"
+            hx-indicator="#ind_phone"
+            autocomplete="phone"
+            value=""
+            name="phone"
+            required
+        />
+        <div
+            id="ind_phone"
+            class="htmx-indicator h-full inset-y-0 right-0 flex flex-col justify-center absolute"
+        >
+            <svg
+            class="animate-spin h-8 w-8 fill-milanoRed"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+            >
+            <path
+                d="M12 3C16.9706 3 21 7.02944 21 12H19C19 8.13401 15.866 5 12 5V3Z"
+            />
+            </svg>
+        </div>
+                
+    </div>
+    </div>            <div class="relative mt-[1em]">
+    <input
+        :type="showpwd ? 'text' : 'password' "
+        x-model="password"
+        name="password"
+        id="password"
+        placeholder="Mật khẩu"
+        class="w-full p-[0.5em] border border-solid border-black text-[1.2em]"
+        required
+        autocomplete="off"
+    />
+    <div @click="showpwd = !showpwd" class="absolute flex flex-col justify-center inset-y-0 right-2">
+        <svg x-show="!showpwd" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+        </svg>
+        <svg x-show="showpwd" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+
+    </div>
+</div>            <div class="privacy__term-group mt-[2em]">
+                <label class="full-field flex items-start gap-4">
+                    <div>
+                    <input
+                        class="checkbox-custom appearance-auto accent-black"
+                        type="checkbox"
+                        name="acceptTerm"
+                        id="acceptTerm"
+                        required
+                                            />
+                    </div>
+                    <div>
+                    <span class="form-label"
+                        >Tôi đồng ý với
+                        <a
+                        rel="follow"
+                        href="https://www.elle.vn/dieu-khoan-su-dung"
+                        title="Điều khoản sử dụng"
+                        target="_blank"
+                        class="italic font-medium"
+                        >Thoả Thuận Về Điều Khoản và Điều Kiện Sử Dụng</a
+                        >
+                    </span>
+                    </div>
+                </label>
+                
+                <label class="full-field flex justify-start gap-4">
+                    <div>
+                    <input
+                        class="checkbox-custom appearance-auto accent-black"
+                        type="checkbox"
+                        name="acceptPrivacy"
+                        id="acceptPrivacy"
+                        required
+                                            />
+                    </div>
+                    <div>
+                    <span class="form-label"
+                        >Tôi đồng ý với
+                        <a
+                        rel="follow"
+                        href="https://www.elle.vn/chinh-sach-rieng-tu"
+                        title="Chính sách riêng tư"
+                        target="_blank"
+                        >Chính Sách Bảo Mật</a
+                        ></span
+                    >
+                    </div>
+                </label>
+                <label class="full-field flex justify-start gap-4">
+                    <div>
+                    <input
+                        class="checkbox-custom appearance-auto accent-black"
+                        type="checkbox"
+                        name="acceptPrivacy"
+                        id="acceptPrivacy"
+                        required
+                                            />
+                    </div>
+                    <div>
+                    <span class="form-label"
+                        >Tôi đồng ý nhận email cập nhật tin tức, ưu đãi và sự kiện từ elledigital@wwwdigitalnetwork.com</span
+                    >
+                    </div>
+                </label>
+                <p>
+                    Bằng việc bấm vào "ĐĂNG KÝ", bạn đồng ý rằng bạn đã đọc, hiểu
+                    và đồng ý với các điều khoản và điều kiện được quy định tại
+                    <a
+                    rel="follow"
+                    href="https://www.elle.vn/dieu-khoan-su-dung"
+                    title="Điều khoản sử dụng"
+                    target="_blank"
+                    class="italic font-medium"
+                    >Thoả Thuận Về Điều Khoản và Điều Kiện Sử Dụng
+                    </a>
+                    ,
+                    <a
+                    rel="follow"
+                    href="https://www.elle.vn/chinh-sach-rieng-tu"
+                    title="Chính sách riêng tư"
+                    target="_blank"
+                    class="italic font-medium"
+                    >Chính Sách Bảo Mật
+                    </a>
+                    và
+                    <a
+                    rel="follow"
+                    href="#"
+                    title="Thông tin"
+                    target="_blank"
+                    class="italic font-medium"
+                    >Thông Tin Cập Nhật Tin Tức
+                    </a>
+                    của chúng tôi.
+                </p>
+            </div>
+            <input type="hidden" name="__csrf_value" value="748cd8f6a8fd68a5bee5229c008c6ad94d388a8452712aca9b69a3ea9988ecc73f82df012708fc7c5886915a593229d4b009cbf434d7e445df9bbb4e65c6bf2d">
+            <button
+                type="submit"
+                data-loading-disable
+                class="w-full bg-black text-white uppercase p-[0.5em] mt-[1em] text-[1.2em]"
+            >
+                ĐĂNG KÝ
+            </button>
+        </div>
+    </form>

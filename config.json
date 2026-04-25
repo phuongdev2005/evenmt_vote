@@ -1,0 +1,12 @@
+{
+  "kiotProxyKeys": ["Kd3ab3640b9f444bc80a2adc8aa9615cd", "K0001bd42f02c446da3519139dca91805", "K6ed62bc6a1b44d40aeb32d50bc397768"],
+  "kiotRegion": "random",
+  "concurrency": 12,
+  "accountCount": 5500,
+  "emailPrefix": "",
+  "emailStartIndex": 0,
+  "emailNumberWidth": 4,
+  "emailDomain": "",
+  "gemloginApi": "http://localhost:1010",
+  "elleRegisterUrl": "https://www.elle.vn/dang-ky/"
+}
