@@ -19,19 +19,27 @@ domains = [
     'vregion.ru', 'warunkto.com', 'zavex.sbs'
 ]
 
-def generate_random_username(length=10):
+def generate_random_username(length=12):
     letters = string.ascii_lowercase + string.digits
     return ''.join(random.choice(letters) for _ in range(length))
+
+prefixes = [
+    'user', 'happy', 'cool', 'super', 'mega', 'pro', 'star', 'best', 'top', 'king',
+    'queen', 'lord', 'boss', 'hero', 'zero', 'neo', 'sky', 'moon', 'sun', 'fire',
+    'ice', 'wind', 'rain', 'snow', 'gold', 'silver', 'blue', 'red', 'green', 'dark'
+]
 
 # Lấy số lượng email từ tham số dòng lệnh, mặc định là 63
 count = int(sys.argv[1]) if len(sys.argv) > 1 else len(domains)
 
-emails = []
-for i in range(count):
-    domain = domains[i % len(domains)]  # Lặp lại domain nếu cần
-    username = generate_random_username()
+emails = set()  # Sử dụng set để tránh trùng
+while len(emails) < count:
+    domain = domains[len(emails) % len(domains)]  # Lặp lại domain nếu cần
+    prefix = prefixes[len(emails) % len(prefixes)]  # Chọn prefix theo thứ tự
+    random_part = generate_random_username()
+    username = f'{prefix}{random_part}'
     email = f'{username}@{domain}'
-    emails.append(email)
+    emails.add(email)  # set tự động loại bỏ trùng
 
 with open('accounts_https.txt', 'w', encoding='utf-8') as f:
     for email in emails:
