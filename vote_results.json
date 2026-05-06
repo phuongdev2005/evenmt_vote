@@ -1,0 +1,13 @@
+{
+  "total": 1,
+  "success": 1,
+  "votes": [
+    {
+      "email": "6jlpthfpvm@navermail.kr",
+      "result": {
+        "success": true,
+        "status": 200
+      }
+    }
+  ]
+}

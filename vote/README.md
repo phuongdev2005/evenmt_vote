@@ -8,7 +8,10 @@ Hệ thống tự động login và vote cho sự kiện Elle Beauty Awards 2026
 |------|-----------|
 | `open_profiles.py` | Login tự động bằng GemLogin + Playwright |
 | `vote_api.py` | Vote qua API (Next.js Server Action) |
+| `vote_single.py` | Vote 1 account cụ thể |
 | `vote_all.py` | Vote tự động bằng nhiều account |
+| `export_accounts.py` | Xuất danh sách voted/unvoted ra txt |
+| `check_vote_status.py` | Kiểm tra trạng thái vote |
 | `gemlogin.py` | Kết nối GemLogin API |
 | `account.txt` | Danh sách tài khoản email |
 | `login_cookies.sqlite3` | Database lưu cookies sau login |
@@ -26,7 +29,7 @@ playwright install chromium
 
 ## 1. Login tự động
 
-### Chạy test (120 accounts, 12 profiles)
+### Chạy test
 
 ```bash
 python vote/open_profiles.py
@@ -41,35 +44,52 @@ python vote/run_until_empty.py
 ### Tham số điều chỉnh (trong `open_profiles.py`)
 
 ```python
-NUM_PROFILES = 12              # Số profile song song
-MAX_ACCOUNTS_PER_RUN = 120     # Số account mỗi lần chạy
+NUM_PROFILES = 6               # Số profile song song (mặc định 6)
+MAX_ACCOUNTS_PER_RUN = 0       # 0 = không giới hạn, chạy hết
 ```
 
 ### Tính năng
 
 - **Tự động xóa account đã xử lý** khỏi `account.txt`
 - **Không xử lý lại** account đã có trong database
-- **Sắp xếp cửa sổ**: 12 profile đè lên nhau tại `(0, 0)`
+- **Sắp xếp cửa sổ**: 6 profile theo lưới 3x2, mỗi cửa sổ 512x412
 - **Tự động giải CAPTCHA** (Cloudflare Turnstile)
 - **Đo thời gian** và thống kê success/failure
 
 ## 2. Vote tự động
 
-### Vote 1 account ngẫu nhiên
+### Vote tất cả account chưa vote
 
 ```bash
 python vote/vote_api.py
 ```
 
-### Vote cho candidate cụ thể
+### Vote số lượng giới hạn (test)
 
-Sửa `target_id` trong `vote_api.py`:
-
-```python
-target_id = "69e1fa8da51bd7bcd50c5b2e"  # Candidate ID
+```bash
+python vote/vote_api.py --limit 5
 ```
 
-### Vote tất cả account chưa vote
+### Vote 1 account cụ thể
+
+```bash
+python vote/vote_api.py --email xekzh0g1rp@jieluv.com
+```
+
+### Vote candidate khác
+
+```bash
+python vote/vote_api.py --target 69e1fe40de1b6fbcd4b30990
+```
+
+### Vote bằng vote_single.py
+
+```bash
+python vote/vote_single.py xekzh0g1rp@jieluv.com
+python vote/vote_single.py xekzh0g1rp@jieluv.com --target 69e1fe40de1b6fbcd4b30990
+```
+
+### Vote tất cả account (không check voted_at)
 
 ```bash
 python vote/vote_all.py
@@ -77,14 +97,29 @@ python vote/vote_all.py
 
 ## 3. Kiểm tra trạng thái
 
+### Check nhanh (số lượng)
+
+```bash
+python vote/vote_api.py --check
+```
+
+Output: `Total success: 626 | Voted: 323 | Unvoted: 303`
+
+### Check chi tiết
+
 ```bash
 python vote/check_vote_status.py
 ```
 
-Hiển thị:
-- Tổng số account
-- Số đã vote / chưa vote
-- Danh sách chi tiết
+### Xuất ra file txt
+
+```bash
+python vote/export_accounts.py
+```
+
+Tạo:
+- `vote/voted_accounts.txt`
+- `vote/unvoted_accounts.txt`
 
 ## 4. Dọn dẹp
 
@@ -106,4 +141,4 @@ python vote/clean_duplicates.py
 
 - Mỗi account chỉ vote **1 lần/24 giờ**
 - Vote thành công sẽ được đánh dấu trong database (`voted_at`, `voted_for`)
-- Nếu gặp lỗi "Event loop is closed", giảm `MAX_ACCOUNTS_PER_RUN` xuống
+- Nếu gặp lỗi "Event loop is closed", giảm `NUM_PROFILES` xuống

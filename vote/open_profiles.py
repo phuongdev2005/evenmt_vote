@@ -34,7 +34,7 @@ PROJECT_DIR = SCRIPT_DIR.parent
 ACCOUNT_FILE = SCRIPT_DIR / "account.txt"
 DB_FILE = SCRIPT_DIR / "login_cookies.sqlite3"
 PROFILE_INDEX = 0
-MAX_ACCOUNTS_PER_RUN = 120  # Test with 120 accounts first (10 per profile)
+MAX_ACCOUNTS_PER_RUN = 0  # 0 = no limit, process all accounts in one run
 NUM_PROFILES = 6  # Number of parallel profiles
 MANUAL_CAPTCHA_TIMEOUT = 180
 
