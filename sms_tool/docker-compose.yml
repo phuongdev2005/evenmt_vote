@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  sms_tool:
+    build: .
+    container_name: sms_tool
+    network_mode: host
+    volumes:
+      # Mount vote directory for gemlogin.py access
+      - ../vote:/app/vote:ro
+      # Persist database and account files
+      - ./vote_cookies.sqlite3:/app/vote_cookies.sqlite3
+      - ./smsaccount.txt:/app/smsaccount.txt
+      - ./failed_sms.txt:/app/failed_sms.txt
+      - ./results_sms.txt:/app/results_sms.txt
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["python", "main.py", "--count", "5", "--loop"]

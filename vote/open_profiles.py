@@ -19,34 +19,53 @@ import httpx
 from colorama import Fore, Style, init
 from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError, async_playwright
 
+def configure_stdio() -> None:
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
+configure_stdio()
+
+def get_project_dir() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent.parent
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = get_project_dir()
+VOTE_DIR = PROJECT_DIR / "vote"
+
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
+if str(VOTE_DIR) not in sys.path:
+    sys.path.insert(0, str(VOTE_DIR))
+
 try:
-    from gemlogin import close_profile, get_profiles, start_profile
+    from gemlogin import close_profile, create_profile, get_profiles, start_profile
 except ImportError:
-    from vote.gemlogin import close_profile, get_profiles, start_profile
+    from vote.gemlogin import close_profile, create_profile, get_profiles, start_profile
 
 
 init()
 
 LOGIN_URL = "https://events.elle.vn/login?returnTo=%2Felle-beauty-awards-2026%2Fnhan-vat"
 SITE_ORIGIN = "https://events.elle.vn"
-SCRIPT_DIR = Path(__file__).parent
-PROJECT_DIR = SCRIPT_DIR.parent
-ACCOUNT_FILE = SCRIPT_DIR / "account.txt"
-DB_FILE = SCRIPT_DIR / "login_cookies.sqlite3"
+ACCOUNT_FILE = VOTE_DIR / "account.txt"
+DB_FILE = VOTE_DIR / "login_cookies.sqlite3"
 PROFILE_INDEX = 0
 MAX_ACCOUNTS_PER_RUN = 0  # 0 = no limit, process all accounts in one run
-NUM_PROFILES = 6  # Number of parallel profiles
-MANUAL_CAPTCHA_TIMEOUT = 180
+NUM_PROFILES = 12  # Number of parallel profiles
+MANUAL_CAPTCHA_TIMEOUT = 60
 
 # Window layout settings
 SCREEN_WIDTH = 1536
 SCREEN_HEIGHT = 824
-WINDOW_COLS = 3
+WINDOW_COLS = 6  # 6 columns x 2 rows = 12 profiles
 WINDOW_WIDTH = SCREEN_WIDTH // WINDOW_COLS
 WINDOW_HEIGHT = SCREEN_HEIGHT // 2
-
-if str(PROJECT_DIR) not in sys.path:
-    sys.path.insert(0, str(PROJECT_DIR))
 
 
 def is_logged_in_url(url: str) -> bool:
@@ -142,7 +161,12 @@ def get_saved_success_emails(db_path: Path = DB_FILE) -> set[str]:
 
 def load_accounts(filepath: Path) -> list[str]:
     try:
-        return [line.strip() for line in filepath.read_text(encoding="utf-8").splitlines() if line.strip()]
+        accounts = []
+        for line in filepath.read_text(encoding="utf-8-sig").splitlines():
+            email = line.strip().lstrip("\ufeff")
+            if email:
+                accounts.append(email)
+        return accounts
     except Exception as exc:
         print(f"{Fore.RED}Cannot read {filepath}: {exc}{Style.RESET_ALL}")
         return []
@@ -274,7 +298,7 @@ async def login_account(page: Page, email: str) -> dict:
         print(f"{Fore.YELLOW}Widget not detected, continuing anyway...{Style.RESET_ALL}")
 
     print(f"{Fore.YELLOW}Auto-solving Turnstile CAPTCHA...{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}Auto-click every 2s. Timeout: {MANUAL_CAPTCHA_TIMEOUT}s{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}Auto-click every 2s. Timeout: 60s{Style.RESET_ALL}")
     captcha_start = time.time()
     turnstile_ok = await wait_for_turnstile_token(page)
     result["captcha_duration"] = round(time.time() - captcha_start, 2)
@@ -283,32 +307,120 @@ async def login_account(page: Page, email: str) -> dict:
         return result
     print(f"{Fore.GREEN}Turnstile token detected.{Style.RESET_ALL}")
 
+    # Đợi nút submit xuất hiện (chỉ hiện sau khi CAPTCHA giải xong)
+    print(f"{Fore.CYAN}Waiting for submit button to appear...{Style.RESET_ALL}")
+    max_clicks = 3
+    for click_attempt in range(max_clicks):
+        submit_button = None
+        try:
+            await page.wait_for_selector('button[type="submit"]:has-text("Đăng nhập")', timeout=10000)
+            submit_button = page.locator('button[type="submit"]').filter(has_text="Đăng nhập")
+            print(f"{Fore.GREEN}Submit button found (attempt {click_attempt + 1}/{max_clicks}){Style.RESET_ALL}")
+            is_enabled = await submit_button.is_enabled()
+            print(f"{Fore.CYAN}Button enabled: {is_enabled}{Style.RESET_ALL}")
+            await submit_button.click(timeout=5000)
+            print(f"{Fore.GREEN}Button clicked{Style.RESET_ALL}")
+        except Exception as exc:
+            print(f"{Fore.YELLOW}Primary selector failed (attempt {click_attempt + 1}): {exc}{Style.RESET_ALL}")
+            # Fallback: đợi bất kỳ button[type="submit"] nào
+            try:
+                await page.wait_for_selector('button[type="submit"]', timeout=5000)
+                submit_button = page.locator('button[type="submit"]').first
+                print(f"{Fore.GREEN}Fallback button found (attempt {click_attempt + 1}){Style.RESET_ALL}")
+                is_enabled = await submit_button.is_enabled()
+                print(f"{Fore.CYAN}Button enabled: {is_enabled}{Style.RESET_ALL}")
+                await submit_button.click(timeout=5000)
+                print(f"{Fore.GREEN}Button clicked{Style.RESET_ALL}")
+            except Exception:
+                # Fallback JavaScript click
+                try:
+                    print(f"{Fore.YELLOW}Trying JavaScript click (attempt {click_attempt + 1})...{Style.RESET_ALL}")
+                    await page.evaluate("document.querySelector('button[type=\"submit\"]').click()")
+                except Exception:
+                    result.update(status="submit_failed", error=str(exc), url=page.url)
+                    return result
+
+        # Check nếu đã đổi trang
+        await asyncio.sleep(0.5)
+        if is_logged_in_url(page.url):
+            result.update(status="success", url=page.url)
+            print(f"{Fore.GREEN}Redirected to success page after click{Style.RESET_ALL}")
+            return result
+
+        # Check nếu không còn nút submit nữa
+        try:
+            has_button = await page.locator('button[type="submit"]').count() > 0
+            if not has_button:
+                print(f"{Fore.GREEN}Submit button disappeared, checking URL...{Style.RESET_ALL}")
+                if is_logged_in_url(page.url):
+                    result.update(status="success", url=page.url)
+                    return result
+                else:
+                    result.update(status="unknown_redirect", url=page.url)
+                    return result
+        except Exception:
+            pass
+
+        # Nếu vẫn còn nút và vẫn ở login page → click lại
+        print(f"{Fore.YELLOW}Still on login page, button still exists, clicking again...{Style.RESET_ALL}")
+        await asyncio.sleep(1)
+
+    # Đã click max 3 lần vẫn không redirect
+    print(f"{Fore.RED}Clicked {max_clicks} times, still on login page{Style.RESET_ALL}")
+    result.update(status="submit_failed", url=page.url)
+
+    # Đợi redirect đến URL success chính xác
+    print(f"{Fore.CYAN}Waiting for redirect to success page...{Style.RESET_ALL}")
     try:
-        await page.click('button[type="submit"]', timeout=10000)
-    except Exception as exc:
-        result.update(status="submit_failed", error=str(exc), url=page.url)
-        return result
-
-    await asyncio.sleep(2)  # Reduced wait time
-    result["url"] = page.url
-    result["duration"] = round(time.time() - start_time, 2)
-
-    if is_logged_in_url(page.url):
+        await page.wait_for_url("**/elle-beauty-awards-2026/nhan-vat", timeout=30000)
         result["status"] = "success"
-    elif "login" in page.url:
-        result["status"] = "login_failed_or_captcha"
-    else:
-        result["status"] = "unknown"
+        result["url"] = page.url
+        print(f"{Fore.GREEN}Redirected to success page{Style.RESET_ALL}")
+    except Exception:
+        print(f"{Fore.YELLOW}Redirect timeout, trying form submit via JavaScript...{Style.RESET_ALL}")
+        # Fallback: submit form trực tiếp
+        try:
+            await page.evaluate('document.querySelector("form").submit()')
+            await asyncio.sleep(2)
+            current_url = page.url
+            if is_logged_in_url(current_url):
+                result["status"] = "success"
+                result["url"] = current_url
+                print(f"{Fore.GREEN}Form submit worked{Style.RESET_ALL}")
+            else:
+                # Fallback: check URL hiện tại
+                result["url"] = current_url
+                if is_logged_in_url(current_url):
+                    result["status"] = "success"
+                    print(f"{Fore.YELLOW}Fallback: URL looks like success page{Style.RESET_ALL}")
+                elif "login" in current_url:
+                    print(f"{Fore.RED}Still on login page after 30s, final URL: {current_url}{Style.RESET_ALL}")
+                    result["status"] = "login_failed_or_captcha"
+                else:
+                    result["status"] = "unknown_redirect"
+        except Exception as e:
+            current_url = page.url
+            result["url"] = current_url
+            if is_logged_in_url(current_url):
+                result["status"] = "success"
+            elif "login" in current_url:
+                print(f"{Fore.RED}Form submit failed: {e}{Style.RESET_ALL}")
+                print(f"{Fore.RED}Still on login page after 30s, final URL: {current_url}{Style.RESET_ALL}")
+                result["status"] = "login_failed_or_captcha"
+            else:
+                result["status"] = "unknown_redirect"
+
+    result["duration"] = round(time.time() - start_time, 2)
 
     print(f"{Fore.CYAN}[Time] Total: {result['duration']}s, CAPTCHA: {result['captcha_duration']}s{Style.RESET_ALL}")
     return result
 
 
 def get_window_position(profile_num: int, total_profiles: int) -> tuple[int, int]:
-    """Grid layout 6x2 for 12 profiles."""
+    """Grid layout 4x2 for 8 profiles."""
     SCREEN_W = 1536
     SCREEN_H = 824
-    COLS = 6
+    COLS = 4
     ROWS = 2
     WIN_W = SCREEN_W // COLS
     WIN_H = SCREEN_H // ROWS
@@ -431,16 +543,16 @@ async def run_profile_tasks(client, profile_id: str, accounts: list[str], profil
                 result = await login_account(page, email)
                 cookies = await context.cookies()
                 current_url = result.get("url") or page.url
-                save_login_cookies(profile_id, email, result["status"], current_url, cookies)
 
                 color = Fore.GREEN if result["status"] == "success" else Fore.RED
                 print(f"{color}[Profile {profile_num}] Result: {result['status']}{Style.RESET_ALL}")
-                print(f"{Fore.CYAN}[Profile {profile_num}] Saved {len(cookies)} cookies{Style.RESET_ALL}")
 
                 # Track stats
                 if result["status"] == "success":
+                    save_login_cookies(profile_id, email, result["status"], current_url, cookies)
                     stats["success"] += 1
                     remove_account_from_file(email)
+                    print(f"{Fore.CYAN}[Profile {profile_num}] Saved {len(cookies)} cookies{Style.RESET_ALL}")
                 else:
                     stats["failed"] += 1
 
